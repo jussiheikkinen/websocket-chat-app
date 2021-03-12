@@ -19,7 +19,9 @@ interface MessageResponse {
 
 interface Message {
   message: string,
-  user: string
+  user: string,
+  username: string,
+  timestamp: number
 }
 
 const ip = '192.168.1.104'
@@ -134,7 +136,7 @@ export const App = () => {
             }}
           >
             <VStack ref={feedRef}>
-              {messages.map(({ message, user }, i) => (
+              {messages.map(({ message, username, timestamp }, i) => (
                 <div
                   key={i}
                   style={{
@@ -145,7 +147,7 @@ export const App = () => {
                     margin: '8px auto'
                   }}
                 >
-                  <Message title={user} desc={message} />
+                  <Message title={username} desc={message} timestamp={timestamp} />
                 </div>
               ))}
             </VStack>

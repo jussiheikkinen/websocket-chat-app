@@ -6,6 +6,9 @@ const http = require('http')
 const uuid = require('uuid')
 const WebSocket = require('ws')
 const cors = require('cors')
+const Chance = require('chance')
+
+const chance = new Chance()
 
 const app = express()
 const map = new Map()
@@ -37,7 +40,7 @@ app.delete('/logout', function (request, response) {
 
   console.log('Destroying session')
   request.session.destroy(function () {
-    if (ws) ws.close()
+    if (ws) ws.client.close()
 
     response.send({ result: 'OK', message: 'Session destroyed' })
   })
@@ -69,15 +72,21 @@ server.on('upgrade', function (request, socket, head) {
 wss.on('connection', function (ws, request) {
   const userId = request.session.userId
 
-  map.set(userId, ws)
+  map.set(userId, {client: ws, username: chance.animal()})
 
   ws.on('message', function (message) {
     console.log(`Received message ${message} from user ${userId}`)
+    const user = map.get(userId)
 
-    map.forEach((client, key) => {
+    map.forEach(({ client }, key) => {
       console.log('broadcasting to', key)
       if (client.readyState === WebSocket.OPEN) {
-        client.send(JSON.stringify({ message: message, user: key }))
+        client.send(JSON.stringify({
+          user: key,
+          username: user.username,
+          message: message,
+          timestamp: +new Date()
+        }))
       }
     })
   })

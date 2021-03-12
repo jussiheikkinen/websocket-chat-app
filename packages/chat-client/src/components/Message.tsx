@@ -4,8 +4,9 @@ import {
   Text,
   Heading
 } from '@chakra-ui/react'
+import dayjs from 'dayjs'
 
-function Message({ title, desc, ...rest }: any ) {
+function Message({ title, desc, timestamp, ...rest }: any ) {
   return (
     <Box
       p={2}
@@ -15,7 +16,9 @@ function Message({ title, desc, ...rest }: any ) {
       borderRadius='md'
       {...rest}
     >
-      <Heading align='left' color='#000' fontSize='sm'>{title}</Heading>
+      <Heading align='left' color='#000' fontSize='sm'>
+        {`${title} - ${dayjs(timestamp).format('YYYY-MM-DD HH:mm')}`}
+      </Heading>
       <Text color='#000' mt={4} fontSize='md'>{desc}</Text>
     </Box>
   )
