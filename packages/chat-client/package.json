@@ -23,7 +23,8 @@
     "react-icons": "^3.0.0",
     "react-scripts": "4.0.3",
     "typescript": "^3.9.5",
-    "web-vitals": "^0.2.2"
+    "web-vitals": "^0.2.2",
+    "ws": "^7.4.4"
   },
   "scripts": {
     "react-start": "react-scripts start",
@@ -51,6 +52,7 @@
     ]
   },
   "devDependencies": {
+    "@types/ws": "^7.4.0",
     "concurrently": "^6.0.0",
     "electron": "^12.0.0",
     "electron-builder": "^22.10.5",
