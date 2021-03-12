@@ -10,7 +10,10 @@ const cors = require('cors')
 const app = express()
 const map = new Map()
 
-app.use(cors({credentials: true, origin: 'http://localhost:3000'}))
+app.use(cors({
+  credentials: true,
+  origin: ['http://localhost:3000', 'http://192.168.1.104:3000']
+}))
 
 const sessionParser = session({
   saveUninitialized: false,
@@ -74,7 +77,7 @@ wss.on('connection', function (ws, request) {
     map.forEach((client, key) => {
       console.log('broadcasting to', key)
       if (client.readyState === WebSocket.OPEN) {
-        client.send(message)
+        client.send(JSON.stringify({ message: message, user: key }))
       }
     })
   })

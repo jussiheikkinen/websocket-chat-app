@@ -2,40 +2,68 @@ import React, { useEffect, useState, useRef } from 'react'
 import {
   ChakraProvider,
   Box,
-  Text,
-  Link,
-  VStack,
-  Code,
   Grid,
   theme,
   Button,
   Flex,
-  Textarea
+  Textarea,
+  VStack,
 } from '@chakra-ui/react'
 import { ColorModeSwitcher } from './ColorModeSwitcher'
+import Message from './components/Message'
 
-//const ws = new WebSocket('ws://localhost:8080')
-const ws = new WebSocket('ws://localhost:8080')
+
+interface MessageResponse {
+  data: string
+}
+
+interface Message {
+  message: string,
+  user: string
+}
+
+const ip = '192.168.1.104'
 
 export const App = () => {
+  const [ws, setWs] = useState<any>(null)
   const [joined, setJoined] = useState<Boolean>(false)
   const [input, setInput] = useState<string>('')
-  const [messages, setMessages] = useState<string[]>([])
+  const [messages, setMessages] = useState<Message[]>([])
   const feedRef = useRef<any>(null)
 
   useEffect(() => {
+    if (ws === null) {
+      setWs(new WebSocket(`ws://${ip}:8080`))
+    }
+
+    return () => ws && ws.close()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [joined])
+
+  useEffect(() => {
+    if (!ws) return
+
     ws.onopen = () => {
       console.log('Websocket client connected')
       setJoined(true)
     }
 
-    ws.onmessage = (data) => {
-      console.log('received', data)
-      setMessages([...messages, data.data])
+    ws.onmessage = ({ data }: MessageResponse) => {
+      console.log('received', JSON.parse(data))
+      setMessages([...messages, JSON.parse(data)])
       feedRef.current.scrollIntoView({behavior: 'smooth', block: 'end'})
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [input])
+
+    ws.onerror = (event: any) => {
+      console.error('WebSocket error observed:', event)
+      setWs(null)
+    }
+
+    ws.onclose = () => {
+      console.log('Closing ws connection')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  })
 
   const submit = () => {
     if (!joined) return
@@ -46,7 +74,7 @@ export const App = () => {
   }
 
   const leave = () => {
-    fetch('http://localhost:8080/logout', {
+    fetch(`http://${ip}:8080/logout`, {
       method: 'DELETE',
       //credentials: 'same-origin',
       credentials: 'include',
@@ -59,12 +87,13 @@ export const App = () => {
     .then(res => {
       console.log(res)
       setJoined(false)
+      setWs(null)
     })
     .catch(err => console.error(err))
   }
 
   const login = () => {
-    fetch('http://localhost:8080/login', {
+    fetch(`http://${ip}:8080/login`, {
       method: 'POST',
       //credentials: 'same-origin',
       credentials: 'include',
@@ -104,13 +133,8 @@ export const App = () => {
               left: 10
             }}
           >
-            <Flex
-              direction={'column'}
-              justify='center'
-              align='center'
-              ref={feedRef}
-            >
-              {messages.map((msg, i) => (
+            <VStack ref={feedRef}>
+              {messages.map(({ message, user }, i) => (
                 <div
                   key={i}
                   style={{
@@ -121,10 +145,10 @@ export const App = () => {
                     margin: '8px auto'
                   }}
                 >
-                  <p style={{ color: '#000' }}>{msg}</p>)
+                  <Message title={user} desc={message} />
                 </div>
               ))}
-            </Flex>
+            </VStack>
           </Box>
           <Flex
             direction={'column'}
@@ -141,7 +165,7 @@ export const App = () => {
             />
             <Button
               onClick={() => submit()}
-              style={{ width: 100, margin: 8 }}
+              style={{ width: 500, margin: 16 }}
               >
               Send
             </Button>
