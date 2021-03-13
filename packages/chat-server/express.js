@@ -30,10 +30,13 @@ app.use(sessionParser)
 
 app.post('/login', function (req, res) {
   const id = uuid.v4()
+  const animal = chance.animal()
 
   console.log(`Updating session for user ${id}`)
+
   req.session.userId = id
-  res.send({ result: 'OK', message: 'Session updated' })
+  sessionCache.set(id, animal)
+  res.send({ result: 'OK', message: 'Session updated', username: animal})
 })
 
 app.delete('/logout', function (request, response) {
@@ -72,14 +75,8 @@ server.on('upgrade', function (request, socket, head) {
 
 wss.on('connection', function (ws, request) {
   const userId = request.session.userId
-  const animal = chance.animal()
 
-  if (!sessionCache.has(userId)) {
-    sessionCache.set(userId, animal)
-    connections.set(userId, {client: ws, username: animal})
-  } else {
-    connections.set(userId, {client: ws, username: sessionCache.get(userId)})
-  }
+  connections.set(userId, {client: ws, username: sessionCache.get(userId)})
 
   ws.on('message', function (message) {
     console.log(`Received message ${message} from user ${userId}`)
@@ -92,7 +89,8 @@ wss.on('connection', function (ws, request) {
           user: key,
           username: user.username,
           message: message,
-          timestamp: +new Date()
+          timestamp: +new Date(),
+          sentByMe: key === userId
         }))
       }
     })
