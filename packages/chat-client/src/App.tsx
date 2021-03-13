@@ -8,9 +8,11 @@ import {
   Flex,
   Textarea,
   VStack,
+  HStack
 } from '@chakra-ui/react'
 import { ColorModeSwitcher } from './ColorModeSwitcher'
-import Message from './components/Message'
+import MessageRow from './components/Message'
+import JoinRoomDlg from './components/JoinRoomDlg'
 
 
 interface MessageResponse {
@@ -81,7 +83,7 @@ export const App = () => {
       method: 'DELETE',
       //credentials: 'same-origin',
       credentials: 'include',
-      body: JSON.stringify('masamainio'),
+      body: JSON.stringify({}),
       headers: {
         'Content-Type': 'application/json'
       },
@@ -90,17 +92,18 @@ export const App = () => {
     .then(res => {
       console.log(res)
       setJoined(false)
+      setMessages([])
       setWs(null)
     })
     .catch(err => console.error(err))
   }
 
-  const login = () => {
-    fetch(`http://${ip}:8080/login`, {
+  const login = (roomId: string) => {
+    fetch(`http://${ip}:8080/login/${roomId}`, {
       method: 'POST',
       //credentials: 'same-origin',
       credentials: 'include',
-      body: JSON.stringify('masamainio'),
+      body: JSON.stringify({}),
       headers: {
         'Content-Type': 'application/json'
       },
@@ -118,13 +121,21 @@ export const App = () => {
       <Box textAlign='center' fontSize='xl'>
         <Grid minH='100vh' p={3}>
           <ColorModeSwitcher justifySelf='flex-end' />
-          <Button
-            style={{ position: 'fixed', width: 100 }}
-            onClick={() => !joined ? login() : leave()}
-            colorScheme='blue'
-          >
-            {!joined ? 'Join' : 'Leave'}
-          </Button>
+          {!joined &&
+            <HStack style={{ position: 'fixed', width: 200 }}>
+              <JoinRoomDlg onSubmit={(id: string) => login(id)} />
+              <Button colorScheme='teal' onClick={() => login('new')}>
+                New chat
+              </Button>
+            </HStack>
+          }
+          {joined &&
+            <Box style={{ position: 'fixed', width: 200 }}>
+              <Button colorScheme='red' onClick={() => leave()}>
+                Leave room
+              </Button>
+            </Box>
+          }
           <Box
             style={{
               width: '100%',
@@ -148,7 +159,7 @@ export const App = () => {
                     margin: '8px auto'
                   }}
                 >
-                  <Message
+                  <MessageRow
                     title={username}
                     desc={message}
                     timestamp={timestamp}
@@ -172,6 +183,8 @@ export const App = () => {
               placeholder='Here is a sample placeholder'
             />
             <Button
+              variant='outline'
+              colorScheme='teal'
               onClick={() => submit()}
               style={{ width: 500, margin: 16 }}
               >

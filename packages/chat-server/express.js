@@ -7,12 +7,14 @@ const uuid = require('uuid')
 const WebSocket = require('ws')
 const cors = require('cors')
 const Chance = require('chance')
+const { readdirSync } = require('fs')
 
 const chance = new Chance()
 
 const app = express()
 const connections = new Map()
 const sessionCache = new Map()
+const chatRooms = new Map()
 
 app.use(cors({
   credentials: true,
@@ -28,15 +30,39 @@ const sessionParser = session({
 app.use(express.static('public'))
 app.use(sessionParser)
 
-app.post('/login', function (req, res) {
+app.post('/login/:roomId', function (req, res) {
   const id = uuid.v4()
   const animal = chance.animal()
+  const room = req.params.roomId
+  const location = chance.geohash()
 
+  console.log('Room id', room)
   console.log(`Updating session for user ${id}`)
 
   req.session.userId = id
   sessionCache.set(id, animal)
-  res.send({ result: 'OK', message: 'Session updated', username: animal})
+
+  const response = (id) => {
+    res.json({
+      result: 'OK',
+      message: 'Session updated',
+      username: animal,
+      room: id
+    })
+  }
+
+  if (room === 'new') {
+    console.log(`Creating new room ${location}`)
+    chatRooms.set(location, [id])
+    response(location)
+  } else if (chatRooms.has(room)) {
+    console.log(`Joined to a room ${room}`)
+    const participants = chatRooms.get(room)
+    chatRooms.set(room, [...participants, id])
+    response(room)
+  } else {
+    res.status(404).json({ error: 'Oh silly boi' })
+  }
 })
 
 app.delete('/logout', function (request, response) {
@@ -46,7 +72,7 @@ app.delete('/logout', function (request, response) {
   request.session.destroy(function () {
     if (ws) ws.client.close()
 
-    response.send({ result: 'OK', message: 'Session destroyed' })
+    response.json({ result: 'OK', message: 'Session destroyed' })
   })
 })
 
@@ -73,6 +99,17 @@ server.on('upgrade', function (request, socket, head) {
   })
 })
 
+const recipients = (userId) => {
+  const userIds = []
+  chatRooms.forEach((participants, roomId) => {
+    if (participants.includes(userId)) {
+      participants.forEach(id => userIds.push(id))
+    }
+  })
+
+  return userIds
+}
+
 wss.on('connection', function (ws, request) {
   const userId = request.session.userId
 
@@ -83,6 +120,8 @@ wss.on('connection', function (ws, request) {
     const user = connections.get(userId)
 
     connections.forEach(({ client }, key) => {
+      if (!recipients(userId).includes(key)) return
+
       console.log('broadcasting to', key)
       if (client.readyState === WebSocket.OPEN) {
         client.send(JSON.stringify({
