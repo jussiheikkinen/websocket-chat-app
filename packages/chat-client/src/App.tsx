@@ -8,8 +8,11 @@ import {
   Flex,
   Textarea,
   VStack,
-  HStack
+  HStack,
+  useToast
 } from '@chakra-ui/react'
+import { FaRegCopy } from 'react-icons/fa'
+import { CopyToClipboard } from 'react-copy-to-clipboard'
 import { ColorModeSwitcher } from './ColorModeSwitcher'
 import MessageRow from './components/Message'
 import JoinRoomDlg from './components/JoinRoomDlg'
@@ -27,14 +30,21 @@ interface Message {
   sentByMe: boolean
 }
 
+interface Session {
+  room: string
+  username: string
+}
+
 const ip = '192.168.1.104'
 
 export const App = () => {
   const [ws, setWs] = useState<any>(null)
   const [joined, setJoined] = useState<Boolean>(false)
+  const [session, setSession] = useState<Session | null>(null)
   const [input, setInput] = useState<string>('')
   const [messages, setMessages] = useState<Message[]>([])
   const feedRef = useRef<any>(null)
+  const toast = useToast()
 
   useEffect(() => {
     if (ws === null) {
@@ -92,6 +102,7 @@ export const App = () => {
     .then(res => {
       console.log(res)
       setJoined(false)
+      setSession(null)
       setMessages([])
       setWs(null)
     })
@@ -111,7 +122,23 @@ export const App = () => {
     .then(res => res.json())
     .then(res => {
       console.log(res)
-      setJoined(true)
+      if (!res.error) {
+        setJoined(true)
+        setSession(res)
+        toast({
+          title: 'Great',
+          description: 'Joined to chat',
+          status: 'success',
+          duration: 2000,
+        })
+      } else {
+        toast({
+          title: 'Oops',
+          description: 'Could not join room',
+          status: 'error',
+          duration: 2000,
+        })
+      }
     })
     .catch(err => console.error(err))
   }
@@ -122,7 +149,7 @@ export const App = () => {
         <Grid minH='100vh' p={3}>
           <ColorModeSwitcher justifySelf='flex-end' />
           {!joined &&
-            <HStack style={{ position: 'fixed', width: 200 }}>
+            <HStack style={{ position: 'fixed' }}>
               <JoinRoomDlg onSubmit={(id: string) => login(id)} />
               <Button colorScheme='teal' onClick={() => login('new')}>
                 New chat
@@ -130,11 +157,19 @@ export const App = () => {
             </HStack>
           }
           {joined &&
-            <Box style={{ position: 'fixed', width: 200 }}>
+            <HStack style={{ position: 'fixed' }}>
               <Button colorScheme='red' onClick={() => leave()}>
                 Leave room
               </Button>
-            </Box>
+              <CopyToClipboard
+                text={session ? session.room : ''}
+                onCopy={() => toast({ title: 'Link copied', status: 'info', duration: 1000 })}
+              >
+                <Button rightIcon={<FaRegCopy/>}>
+                  Copy room name
+                </Button>
+              </CopyToClipboard>
+            </HStack>
           }
           <Box
             style={{
@@ -176,13 +211,14 @@ export const App = () => {
             style={{ position: 'fixed', bottom: 20, left: 0, right: 0 }}
           >
             <Textarea
-              //onKeyUp={event => event.keyCode === 13}
+              disabled={!joined}
               value={input}
               onChange={event => setInput(event.target.value)}
               style={{ background: '#FFF', color: '#000', width: '90vw' }}
               placeholder='Here is a sample placeholder'
             />
             <Button
+              disabled={!joined}
               variant='outline'
               colorScheme='teal'
               onClick={() => submit()}
