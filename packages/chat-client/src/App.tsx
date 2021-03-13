@@ -16,6 +16,7 @@ import { CopyToClipboard } from 'react-copy-to-clipboard'
 import { ColorModeSwitcher } from './ColorModeSwitcher'
 import MessageRow from './components/Message'
 import JoinRoomDlg from './components/JoinRoomDlg'
+import Toast from './components/Toast'
 
 
 interface MessageResponse {
@@ -126,17 +127,15 @@ export const App = () => {
         setJoined(true)
         setSession(res)
         toast({
-          title: 'Great',
-          description: 'Joined to chat',
           status: 'success',
           duration: 2000,
+          render: () => <Toast title='Great' text='Joined to chat' />
         })
       } else {
         toast({
-          title: 'Oops',
-          description: 'Could not join room',
           status: 'error',
           duration: 2000,
+          render: () => <Toast title='Oops' text='Could not join room' />
         })
       }
     })
@@ -163,7 +162,11 @@ export const App = () => {
               </Button>
               <CopyToClipboard
                 text={session ? session.room : ''}
-                onCopy={() => toast({ title: 'Link copied', status: 'info', duration: 1000 })}
+                onCopy={() => toast({
+                  status: 'info',
+                  duration: 1000,
+                  render: () => <Toast title='' text='Link copied' />
+                })}
               >
                 <Button rightIcon={<FaRegCopy/>}>
                   Copy room name
