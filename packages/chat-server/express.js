@@ -11,7 +11,8 @@ const Chance = require('chance')
 const chance = new Chance()
 
 const app = express()
-const map = new Map()
+const connections = new Map()
+const sessionCache = new Map()
 
 app.use(cors({
   credentials: true,
@@ -36,7 +37,7 @@ app.post('/login', function (req, res) {
 })
 
 app.delete('/logout', function (request, response) {
-  const ws = map.get(request.session.userId)
+  const ws = connections.get(request.session.userId)
 
   console.log('Destroying session')
   request.session.destroy(function () {
@@ -71,14 +72,20 @@ server.on('upgrade', function (request, socket, head) {
 
 wss.on('connection', function (ws, request) {
   const userId = request.session.userId
+  const animal = chance.animal()
 
-  map.set(userId, {client: ws, username: chance.animal()})
+  if (!sessionCache.has(userId)) {
+    sessionCache.set(userId, animal)
+    connections.set(userId, {client: ws, username: animal})
+  } else {
+    connections.set(userId, {client: ws, username: sessionCache.get(userId)})
+  }
 
   ws.on('message', function (message) {
     console.log(`Received message ${message} from user ${userId}`)
-    const user = map.get(userId)
+    const user = connections.get(userId)
 
-    map.forEach(({ client }, key) => {
+    connections.forEach(({ client }, key) => {
       console.log('broadcasting to', key)
       if (client.readyState === WebSocket.OPEN) {
         client.send(JSON.stringify({
@@ -92,7 +99,8 @@ wss.on('connection', function (ws, request) {
   })
 
   ws.on('close', function () {
-    map.delete(userId)
+    console.log('Closing connection')
+    connections.delete(userId)
   })
 })
 
