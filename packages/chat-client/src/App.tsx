@@ -128,12 +128,14 @@ export const App = () => {
         setSession(res)
         setJoined(true)
         toast({
+          position: 'top',
           status: 'success',
           duration: 2000,
           render: () => <Toast title='Great' text='Joined to chat' />
         })
       } else {
         toast({
+          position: 'top',
           status: 'error',
           duration: 2000,
           render: () => <Toast title='Oops' text='Could not join room' />
@@ -164,13 +166,14 @@ export const App = () => {
               <CopyToClipboard
                 text={session ? session.room : ''}
                 onCopy={() => toast({
+                  position: 'top',
                   status: 'info',
                   duration: 1000,
-                  render: () => <Toast title='' text='Link copied' />
+                  render: () => <Toast title='' text='Room name copied to clipboard' />
                 })}
               >
                 <Button rightIcon={<FaRegCopy/>}>
-                  Copy room name
+                  Copy room
                 </Button>
               </CopyToClipboard>
             </HStack>
@@ -182,8 +185,8 @@ export const App = () => {
               overflowY: 'scroll',
               bottom: 200,
               top: 100,
-              right: 10,
-              left: 10
+              right: 0,
+              left: 0
             }}
           >
             <VStack ref={feedRef}>
@@ -226,7 +229,7 @@ export const App = () => {
               variant='outline'
               colorScheme='teal'
               onClick={() => submit()}
-              style={{ width: 500, margin: 16 }}
+              style={{ width: '90vw', margin: 16 }}
               >
               Send
             </Button>
