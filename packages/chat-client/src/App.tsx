@@ -36,7 +36,7 @@ interface Session {
   username: string
 }
 
-const ip = '192.168.1.104'
+const ip = '192.168.1.107'
 
 export const App = () => {
   const [ws, setWs] = useState<any>(null)
@@ -49,7 +49,8 @@ export const App = () => {
 
   useEffect(() => {
     if (ws === null) {
-      setWs(new WebSocket(`ws://${ip}:8080`))
+      const path = session ? `/${session.room}` : ''
+      setWs(new WebSocket(`ws://${ip}:8080` + path))
     }
 
     return () => ws && ws.close()
@@ -102,8 +103,8 @@ export const App = () => {
     .then(res => res.json())
     .then(res => {
       console.log(res)
-      setJoined(false)
       setSession(null)
+      setJoined(false)
       setMessages([])
       setWs(null)
     })
@@ -124,8 +125,8 @@ export const App = () => {
     .then(res => {
       console.log(res)
       if (!res.error) {
-        setJoined(true)
         setSession(res)
+        setJoined(true)
         toast({
           status: 'success',
           duration: 2000,

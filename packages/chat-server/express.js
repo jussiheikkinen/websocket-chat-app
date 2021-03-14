@@ -18,7 +18,7 @@ const chatRooms = new Map()
 
 app.use(cors({
   credentials: true,
-  origin: ['http://localhost:3000', 'http://192.168.1.104:3000']
+  origin: ['http://localhost:3000', 'http://192.168.1.107:3000']
 }))
 
 const sessionParser = session({
@@ -99,37 +99,34 @@ server.on('upgrade', function (request, socket, head) {
   })
 })
 
-const recipients = (userId) => {
-  const userIds = []
-  chatRooms.forEach((participants, roomId) => {
-    if (participants.includes(userId)) {
-      participants.forEach(id => userIds.push(id))
-    }
-  })
+const userInRoom = (roomId, userId) => {
+  const participants = chatRooms.get(roomId)
 
-  return userIds
+  return participants && participants.includes(userId)
 }
 
 wss.on('connection', function (ws, request) {
   const userId = request.session.userId
+  const room = request.url.slice(1) // remove /
 
   connections.set(userId, {client: ws, username: sessionCache.get(userId)})
 
   ws.on('message', function (message) {
-    console.log(`Received message ${message} from user ${userId}`)
+    console.log(`Received message ${message} from user ${userId} in room ${room}`)
     const user = connections.get(userId)
 
-    connections.forEach(({ client }, key) => {
-      if (!recipients(userId).includes(key)) return
+    connections.forEach(({ client }, cursor) => {
+      if (!userInRoom(room, cursor)) return
 
-      console.log('broadcasting to', key)
+      console.log('broadcasting to', cursor)
+
       if (client.readyState === WebSocket.OPEN) {
         client.send(JSON.stringify({
-          user: key,
+          user: cursor,
           username: user.username,
           message: message,
           timestamp: +new Date(),
-          sentByMe: key === userId
+          sentByMe: cursor === userId
         }))
       }
     })
@@ -138,6 +135,7 @@ wss.on('connection', function (ws, request) {
   ws.on('close', function () {
     console.log('Closing connection')
     connections.delete(userId)
+    sessionCache.delete(userId)
   })
 })
 
